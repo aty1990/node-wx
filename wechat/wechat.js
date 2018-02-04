@@ -25,6 +25,9 @@ var api = {
 		_get : prefix + 'menu/get?',
 		del : prefix + 'menu/delete?',
 		current : prefix + 'get_current_selfmenu_info?'
+	},
+	ticket : {
+		get : prefix + 'ticket/getticket?'
 	}
 }
 function Wechat(opts){
@@ -33,6 +36,8 @@ function Wechat(opts){
 	this.appSecret = opts.appSecret
 	this.getAccessToken = opts.getAccessToken
 	this.saveAccessToken = opts.saveAccessToken
+	this.getTicket = opts.getTicket
+	this.saveTicket = opts.saveTicket
 	this.fetchAccessToken();
 }
 
@@ -52,6 +57,66 @@ Wechat.prototype.isValidAccessToken = function(data){
 	}
 };
 
+Wechat.prototype.isValidTicket = function(data){
+	if(!data || !data.ticket || !data.expires_in){
+		return false
+	}
+	var ticket = data.ticket;
+	var expires_in = data.expires_in;
+	var now  = (new Date().getTime());
+
+	if(ticket && now<expires_in){
+		return true;
+	}
+	else{
+		return false;
+	}
+};
+
+Wechat.prototype.fetchAccessToken = function(){
+	var that = this;
+
+	return this.getAccessToken().then(function(data){
+		try {
+			data = JSON.parse(data)
+		} catch(e) {
+			return that.updateAccessToken()
+		}
+
+		if(that.isValidAccessToken(data)){
+			return Promise.resolve(data);
+		}else{
+			return that.updateAccessToken()
+		}
+	})
+	.then(function(data){
+        that.saveAccessToken(data)
+
+        return Promise.resolve(data)
+	})
+}
+Wechat.prototype.fetchTicket = function(access_token){
+	var that = this;
+
+	return this.getAccessToken()
+	.then(function(data){
+		try {
+			data = JSON.parse(data)
+		} catch(e) {
+			return that.updateTicket(access_token)
+		}
+
+		if(that.isValidTicket(data)){
+			return Promise.resolve(data);
+		}else{
+			return that.updateTicket(access_token)
+		}
+	})
+	.then(function(data){
+        that.saveTicket(data)
+        return Promise.resolve(data)
+	})
+}
 Wechat.prototype.updateAccessToken = function(){
 	var appID = this.appID;
 	var appSecret = this.appSecret;
@@ -69,38 +134,22 @@ Wechat.prototype.updateAccessToken = function(){
 		})
 	})
 }
-Wechat.prototype.fetchAccessToken = function(){
-	var that = this;
+Wechat.prototype.updateTicket = function(access_token){
+	
+	var url = api.ticket.get + '&access_token='+access_token + '&type=jsapi';
+	return new Promise(function(resolve,reject){
+		request({url:url,json:true}).then(function(response){
+			var data = response.body;
+			var now =  (new Date().getTime());
+			var expires_in = now + (data.expires_in - 20 ) * 1000;
 
-	if(this.access_token && this.expires_in){
-		if(this.isValidAccessToken(this)){
-			return Promise.resolve(this)
-		}
-	}
+			data.expires_in = expires_in
 
-	return this.getAccessToken().then(function(data){
-		try {
-			data = JSON.parse(data)
-		} catch(e) {
-			return that.updateAccessToken()
-		}
+			resolve(data)
 
-		if(that.isValidAccessToken(data)){
-			return Promise.resolve(data);
-		}else{
-			return that.updateAccessToken()
-		}
-	})
-	.then(function(data){
-        that.access_token = data.access_token
-        that.expires_in = data.expires_in
-
-        that.saveAccessToken(data)
-
-        return Promise.resolve(data)
+		})
 	})
 }
-
 Wechat.prototype.uploadMaterial = function(type,material,permanent){
 	var that = this;
 	var form  = {}
@@ -160,7 +209,6 @@ Wechat.prototype.uploadMaterial = function(type,material,permanent){
 		})
 	})
 }
-
 Wechat.prototype.fetchMaterial = function(mediaId,type,permanent){
 	var that = this;
 	var fetchUrl = api.temporary.fetch
@@ -206,7 +254,6 @@ Wechat.prototype.fetchMaterial = function(mediaId,type,permanent){
 		})
 	})
 }
-
 Wechat.prototype.deleteMaterial = function(mediaId){
 	var that = this;
 	var form  = {
@@ -233,7 +280,6 @@ Wechat.prototype.deleteMaterial = function(mediaId){
 		})
 	})
 }
-
 Wechat.prototype.updateMaterial = function(mediaId,news){
 	var that = this;
 	var form  = {
@@ -310,8 +356,6 @@ Wechat.prototype.batchMaterial = function(options){
 		})
 	})
 }
-
-
 Wechat.prototype.createMenu = function(menu){
 	var that = this;
 	
@@ -336,8 +380,6 @@ Wechat.prototype.createMenu = function(menu){
 		})
 	})
 }
-
-
 Wechat.prototype.getMenu = function(){
 	var that = this;
 	return new Promise(function(resolve,reject){
@@ -360,7 +402,6 @@ Wechat.prototype.getMenu = function(){
 		})
 	})
 }
-
 Wechat.prototype.deleteMenu = function(){
 	var that = this;
 	return new Promise(function(resolve,reject){
@@ -383,7 +424,6 @@ Wechat.prototype.deleteMenu = function(){
 		})
 	})
 }
-
 Wechat.prototype.getCurrentMenu = function(){
 	var that = this;
 	return new Promise(function(resolve,reject){
@@ -406,7 +446,6 @@ Wechat.prototype.getCurrentMenu = function(){
 		})
 	})
 }
-
 Wechat.prototype.reply = function(){
 	var content = this.body;
 	var message = this.weixin;
@@ -417,5 +456,4 @@ Wechat.prototype.reply = function(){
 	this.type = 'application/xml';
 	this.body = xml;
 };
-
 module.exports = Wechat;

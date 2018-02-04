@@ -17,9 +17,6 @@ module.exports = function(opts,handler){
 	  	var str = [token,timestamp,nonce].sort().join(''); //按字典排序，拼接字符串
 	  	var sha = sha1(str); //加密
 
-
-	  	console.log(this.method);
-
 	  	if(this.method === 'GET') {
 	  		if(sha === signature ){
 	  			this.body = echostr + ''
