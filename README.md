@@ -7,4 +7,4 @@
 #### 然后关注微信号进行测试
 
 
-![aline](https://github.com/aty1990/node-xcx/blob/master/public/images/index1.png "aty扶苏公子小程序")  
+![aline](https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1517895314630&di=e50089c4c7e9da3ad2165dfe94fcb012&imgtype=0&src=http%3A%2F%2Fimg.tupianzj.com%2Fuploads%2Fallimg%2F170121%2F9-1F121094937.jpg)  
